@@ -1,0 +1,1 @@
+worker:  npm install && npx tsc && node build/main.js
