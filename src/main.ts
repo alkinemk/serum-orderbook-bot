@@ -21,10 +21,15 @@ let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 // };
 
 // const computeBidsDifference = (bids: Orderbook, depth: number) => {
-//   let topNthBids = bids.getL2(depth);
-//   let differenceArray = topNthBids.map(bid => )
-//   console.log(topNthBids);
-//   console.log(checkBestBids(bids, depth));
+//   let topNthOrders = bids.getL2(depth);
+//   let cleanedArray = topNthOrders.map((order, index, array) =>
+//     order.slice(0, 2)
+//   );
+//   let computedDiffArray = cleanedArray.map((order, index, array) =>
+//     order.push(array[index])
+//   );
+//   console.log(cleanedArray);
+//   //console.log(checkBestBids(bids, depth));
 // };
 
 const run = async () => {
@@ -34,10 +39,10 @@ const run = async () => {
   let quoteTokenTotal = 0;
   let previousBaseTokenTotal = 0;
   let previousQuoteTokenTotal = 0;
-  let ready = true;
   console.log("starting bot...");
 
   while (true) {
+    let ready = true;
     let topBidPrice = 0;
     let topBidSize = 0;
     let myOrderPrice = 0;
@@ -46,10 +51,12 @@ const run = async () => {
     let market = await Market.load(connection, address, {}, programId);
     let bids = await market.loadBids(connection);
 
-    //console.log(computeBestBid(bids, 5));
+    //console.log(computeBidsDifference(bids, 5));
     //console.log(checkBestBids(bids, 4));
     //5 * 10^-4
     //0.0005
+
+    //break;
 
     const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
     const keypair = new Account(Uint8Array.from(JSON.parse(privateKey)));
@@ -84,13 +91,13 @@ const run = async () => {
       baseTokenTotal = openOrders.baseTokenTotal.toNumber();
       quoteTokenFree = openOrders.quoteTokenFree.toNumber();
       quoteTokenTotal = openOrders.quoteTokenTotal.toNumber();
-      console.log(
-        baseTokenFree,
-        baseTokenTotal,
-        quoteTokenFree,
-        quoteTokenTotal
-      );
-      console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
+      // console.log(
+      //   baseTokenFree,
+      //   baseTokenTotal,
+      //   quoteTokenFree,
+      //   quoteTokenTotal
+      // );
+      // console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
 
       let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
       let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
