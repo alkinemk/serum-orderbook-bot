@@ -1,5 +1,5 @@
 import { Account, Connection, PublicKey } from "@solana/web3.js";
-import { Market } from "@project-serum/serum";
+import { Market, Orderbook } from "@project-serum/serum";
 import axios from "axios";
 
 let connection = new Connection("https://ssc-dao.genesysgo.net/");
@@ -7,17 +7,24 @@ let address = new PublicKey("2L3TXpA5ytXq8jFC7mwmbvvTNkFJM5HRYk2pvXXDgrVR");
 let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 
 // const checkBestBids = (bids: Orderbook, depth: number) => {
-//   let topFiveBids = bids.getL2(depth);
+//   let topNthBids = bids.getL2(depth);
 //   let finalArray = [];
-//   for (let i = 1; i < topFiveBids.length; i++) {
+//   for (let i = 1; i < topNthBids.length; i++) {
 //     let tmpArray = [];
-//     let bidsDifference = Math.abs(topFiveBids[i][0] - topFiveBids[i - 1][0]);
-//     let bidsSize = topFiveBids[i][1];
+//     let bidsDifference = Math.abs(topNthBids[i][0] - topNthBids[i - 1][0]);
+//     let bidsSize = topNthBids[i][1];
 //     tmpArray.push(bidsDifference);
 //     tmpArray.push(bidsSize);
 //     finalArray.push(tmpArray);
 //   }
 //   return finalArray;
+// };
+
+// const computeBidsDifference = (bids: Orderbook, depth: number) => {
+//   let topNthBids = bids.getL2(depth);
+//   let differenceArray = topNthBids.map(bid => )
+//   console.log(topNthBids);
+//   console.log(checkBestBids(bids, depth));
 // };
 
 const run = async () => {
@@ -39,8 +46,10 @@ const run = async () => {
     let market = await Market.load(connection, address, {}, programId);
     let bids = await market.loadBids(connection);
 
+    //console.log(computeBestBid(bids, 5));
     //console.log(checkBestBids(bids, 4));
     //5 * 10^-4
+    //0.0005
 
     const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
     const keypair = new Account(Uint8Array.from(JSON.parse(privateKey)));
@@ -75,23 +84,23 @@ const run = async () => {
       baseTokenTotal = openOrders.baseTokenTotal.toNumber();
       quoteTokenFree = openOrders.quoteTokenFree.toNumber();
       quoteTokenTotal = openOrders.quoteTokenTotal.toNumber();
-      // console.log(
-      //   baseTokenFree,
-      //   baseTokenTotal,
-      //   quoteTokenFree,
-      //   quoteTokenTotal
-      // );
-      // console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
+      console.log(
+        baseTokenFree,
+        baseTokenTotal,
+        quoteTokenFree,
+        quoteTokenTotal
+      );
+      console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
 
       let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
-      let quoteDifference =
-        Math.abs(quoteTokenTotal - previousQuoteTokenTotal) / 10000000;
+      let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
+      let price = quoteDifference / baseDifference / 1000000;
       if (
         (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
         baseDifference > 0 &&
         previousBaseTokenTotal > 0
       ) {
-        postBuyOrderMatchedDiscord(baseDifference, quoteDifference);
+        postBuyOrderMatchedDiscord(baseDifference, price);
       }
     }
     previousBaseTokenTotal = baseTokenTotal;
@@ -167,6 +176,7 @@ const run = async () => {
           console.log("Place order retry...");
         }
     }
+    await timer(10000);
   }
 };
 const timer = (ms: any) => new Promise((res) => setTimeout(res, ms));
