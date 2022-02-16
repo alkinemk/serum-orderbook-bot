@@ -32,6 +32,8 @@ let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 // };
 
 const run = async () => {
+  const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
+  const owner = new Account(Uint8Array.from(JSON.parse(privateKey)));
   let baseTokenFree = 0;
   let baseTokenTotal = 0;
   let quoteTokenFree = 0;
@@ -57,11 +59,8 @@ const run = async () => {
 
     //break;
 
-    const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
-    const keypair = new Account(Uint8Array.from(JSON.parse(privateKey)));
-
     // Placing orders
-    let owner = keypair;
+
     let payer = new PublicKey("2N7odTzkWf7kH7CQy55pLvCCqpnMrjWdoUBeESiroAYL");
 
     // Retrieving open orders by owner
