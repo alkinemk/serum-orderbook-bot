@@ -20,17 +20,18 @@ let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 //   return finalArray;
 // };
 
-// const computeBidsDifference = (bids: Orderbook, depth: number) => {
-//   let topNthOrders = bids.getL2(depth);
-//   let cleanedArray = topNthOrders.map((order, index, array) =>
-//     order.slice(0, 2)
-//   );
-//   let computedDiffArray = cleanedArray.map((order, index, array) =>
-//     order.push(array[index])
-//   );
-//   console.log(cleanedArray);
-//   //console.log(checkBestBids(bids, depth));
-// };
+const computeBidsDifference = (bids: Orderbook, depth: number) => {
+  let topNthOrders = bids.getL2(depth);
+  let cleanedArray = topNthOrders.map((order) => order.slice(0, 1));
+  console.log(cleanedArray);
+  // let computedDiffArray = cleanedArray.map((order, index, array) => {
+  //   let current = order[0];
+  //   let next = array[index + 1][0];
+  //   order.push(current - next);
+  // });
+  // console.log(cleanedArray);
+  //console.log(checkBestBids(bids, depth));
+};
 
 const run = async () => {
   let baseTokenFree = 0;
@@ -51,12 +52,12 @@ const run = async () => {
     let market = await Market.load(connection, address, {}, programId);
     let bids = await market.loadBids(connection);
 
-    //console.log(computeBidsDifference(bids, 5));
+    console.log(computeBidsDifference(bids, 5));
     //console.log(checkBestBids(bids, 4));
     //5 * 10^-4
     //0.0005
 
-    //break;
+    break;
 
     const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
     const keypair = new Account(Uint8Array.from(JSON.parse(privateKey)));
