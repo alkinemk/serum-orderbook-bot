@@ -20,18 +20,16 @@ let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 //   return finalArray;
 // };
 
-const computeBidsDifference = (bids: Orderbook, depth: number) => {
-  let topNthOrders = bids.getL2(depth);
-  let cleanedArray = topNthOrders.map((order) => order.slice(0, 1));
-  console.log(cleanedArray);
-  // let computedDiffArray = cleanedArray.map((order, index, array) => {
-  //   let current = order[0];
-  //   let next = array[index + 1][0];
-  //   order.push(current - next);
-  // });
-  // console.log(cleanedArray);
-  //console.log(checkBestBids(bids, depth));
-};
+// const computeBidsDifference = (bids: Orderbook, depth: number) => {
+//   let topNthOrders = bids.getL2(depth);
+
+//   for (let i = 0; i < topNthOrders.length - 1; i++) {
+//     let currentElement = cleanedArray[i];
+//     let nextElement = cleanedArray[i + 1];
+//     console.log(currentElement);
+//     currentElement.push(currentElement[0] - nextElement[0]);
+//   }
+// };
 
 const run = async () => {
   let baseTokenFree = 0;
@@ -47,17 +45,17 @@ const run = async () => {
     let topBidPrice = 0;
     let topBidSize = 0;
     let myOrderPrice = 0;
-    let myOrderSize;
+    let myOrderSize = 0;
     // variables
     let market = await Market.load(connection, address, {}, programId);
     let bids = await market.loadBids(connection);
 
-    console.log(computeBidsDifference(bids, 5));
+    //console.log(computeBidsDifference(bids, 5));
     //console.log(checkBestBids(bids, 4));
     //5 * 10^-4
     //0.0005
 
-    break;
+    //break;
 
     const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
     const keypair = new Account(Uint8Array.from(JSON.parse(privateKey)));
@@ -133,7 +131,10 @@ const run = async () => {
     //   if
     // }
 
-    if (topBidPrice > myOrderPrice && topBidPrice < 0.0069) {
+    if (
+      (topBidPrice > myOrderPrice || topBidSize > myOrderSize) &&
+      topBidPrice < 0.005
+    ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
           try {
