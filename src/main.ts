@@ -44,6 +44,7 @@ const run = async () => {
 
   while (true) {
     let ready = true;
+    let ordersSizeSum = 0;
     let topBidPrice = 0;
     let topBidSize = 0;
     let myOrderPrice = 0;
@@ -71,6 +72,7 @@ const run = async () => {
       if (myOrder.side === "buy") {
         myOrderPrice = myOrder.price;
         myOrderSize = myOrder.size;
+        ordersSizeSum += myOrderSize;
         console.log(`My order price : ${myOrderPrice} | size : ${myOrderSize}`);
       }
     }
@@ -129,9 +131,38 @@ const run = async () => {
     //   }
     //   if
     // }
+    if (topBidPrice === myOrderPrice && ordersSizeSum < 5000) {
+      try {
+        let size = Math.round(Math.random() * (10000 - 5000) + 5000);
+        //let size = 10;
+        let signature = await market.placeOrder(connection, {
+          owner,
+          payer,
+          side: "buy", // 'buy' or 'sell'
+          price: myOrderPrice,
+          size: size,
+          orderType: "limit", // 'limit', 'ioc', 'postOnly'
+        });
+        console.log("Order placed, waiting for finalization...");
+        try {
+          while (
+            (await (
+              await connection.getSignatureStatus(signature)
+            ).value?.confirmationStatus) !== "finalized"
+          );
+        } catch (error) {
+          console.log(error);
+        }
+        console.log("Transaction finalized");
+      } catch (error) {
+        console.log("Place order retry...");
+      }
+    }
 
+    console.log(topBidSize, ordersSizeSum);
+    console.log(topBidPrice, myOrderPrice);
     if (
-      (topBidPrice > myOrderPrice || topBidSize > myOrderSize) &&
+      (topBidPrice > myOrderPrice || topBidSize > ordersSizeSum) &&
       topBidPrice < 0.005
     ) {
       for (let order of myOrders) {
