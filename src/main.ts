@@ -136,31 +136,54 @@ const run = async () => {
       ordersSizeSum < 5000 &&
       topBidPrice < 0.0055
     ) {
-      try {
-        let size = Math.round(Math.random() * (10000 - 5000) + 5000);
-        //let size = 10;
-        let signature = await market.placeOrder(connection, {
-          owner,
-          payer,
-          side: "buy", // 'buy' or 'sell'
-          price: myOrderPrice,
-          size: size,
-          orderType: "limit", // 'limit', 'ioc', 'postOnly'
-        });
-        console.log("Order placed, waiting for finalization...");
-        try {
-          while (
-            (await (
-              await connection.getSignatureStatus(signature)
-            ).value?.confirmationStatus) !== "finalized"
-          );
-        } catch (error) {
-          console.log(error);
+      for (let order of myOrders) {
+        if (order.side === "buy") {
+          try {
+            let signature = await market.cancelOrder(connection, owner, order);
+            console.log("Order cancelled, waiting for finalization");
+            try {
+              while (
+                (await (
+                  await connection.getSignatureStatus(signature)
+                ).value?.confirmationStatus) !== "finalized"
+              );
+              ready = true;
+            } catch (error) {
+              console.log(error);
+            }
+            console.log("Transaction finalized");
+          } catch (error) {
+            ready = false;
+            console.log("Cancel order retry...");
+          }
         }
-        console.log("Transaction finalized");
-      } catch (error) {
-        console.log("Place order retry...");
       }
+      if (ready === true)
+        try {
+          let size = Math.round(Math.random() * (10000 - 5000) + 5000);
+          //let size = 10;
+          let signature = await market.placeOrder(connection, {
+            owner,
+            payer,
+            side: "buy", // 'buy' or 'sell'
+            price: myOrderPrice,
+            size: size,
+            orderType: "limit", // 'limit', 'ioc', 'postOnly'
+          });
+          console.log("Order placed, waiting for finalization...");
+          try {
+            while (
+              (await (
+                await connection.getSignatureStatus(signature)
+              ).value?.confirmationStatus) !== "finalized"
+            );
+          } catch (error) {
+            console.log(error);
+          }
+          console.log("Transaction finalized");
+        } catch (error) {
+          console.log("Place order retry...");
+        }
     }
 
     // console.log(topBidSize, ordersSizeSum);
