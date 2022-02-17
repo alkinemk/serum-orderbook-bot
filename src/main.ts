@@ -98,6 +98,18 @@ const run = async () => {
       //   quoteTokenTotal
       // );
       // console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
+
+      let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
+      let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
+      let price = quoteDifference / baseDifference / 1000000;
+      if (
+        (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
+        baseDifference > 0 &&
+        previousBaseTokenTotal > 0
+      ) {
+        postBuyOrderMatchedDiscord(baseDifference, price);
+      }
+
       if (baseTokenFree > 50000 || quoteTokenFree > 50000000) {
         // spl-token accounts to which to send the proceeds from trades
         let baseTokenAccount = new PublicKey(
@@ -118,17 +130,6 @@ const run = async () => {
         } catch (error) {
           console.log("Settle funds retry...");
         }
-      }
-
-      let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
-      let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
-      let price = quoteDifference / baseDifference / 1000000;
-      if (
-        (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
-        baseDifference > 0 &&
-        previousBaseTokenTotal > 0
-      ) {
-        postBuyOrderMatchedDiscord(baseDifference, price);
       }
     }
     previousBaseTokenTotal = baseTokenTotal;
