@@ -91,13 +91,34 @@ const run = async () => {
       baseTokenTotal = openOrders.baseTokenTotal.toNumber();
       quoteTokenFree = openOrders.quoteTokenFree.toNumber();
       quoteTokenTotal = openOrders.quoteTokenTotal.toNumber();
-      // console.log(
-      //   baseTokenFree,
-      //   baseTokenTotal,
-      //   quoteTokenFree,
-      //   quoteTokenTotal
-      // );
+      console.log(
+        baseTokenFree,
+        baseTokenTotal,
+        quoteTokenFree,
+        quoteTokenTotal
+      );
       // console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
+      if (baseTokenFree > 50000 || quoteTokenFree > 50000000) {
+        // spl-token accounts to which to send the proceeds from trades
+        let baseTokenAccount = new PublicKey(
+          "AuPwvJkjQN8Bv91DGg65VQzjz1B3JZhUnNGS4N4DsRHm"
+        );
+        let quoteTokenAccount = new PublicKey(
+          "2N7odTzkWf7kH7CQy55pLvCCqpnMrjWdoUBeESiroAYL"
+        );
+        try {
+          await market.settleFunds(
+            connection,
+            owner,
+            openOrders,
+            baseTokenAccount,
+            quoteTokenAccount
+          );
+          console.log("Funds settled...");
+        } catch (error) {
+          console.log("Settle funds retry...");
+        }
+      }
 
       let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
       let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
@@ -160,8 +181,7 @@ const run = async () => {
       }
       if (ready === true)
         try {
-          let size = Math.round(Math.random() * (10000 - 5000) + 5000);
-          //let size = 10;
+          let size = Math.round(Math.random() * (15000 - 5000) + 5000);
           let signature = await market.placeOrder(connection, {
             owner,
             payer,
@@ -216,7 +236,7 @@ const run = async () => {
       }
       if (ready === true)
         try {
-          let size = Math.round(Math.random() * (10000 - 5000) + 5000);
+          let size = Math.round(Math.random() * (15000 - 5000) + 5000);
           //let size = 10;
           let signature = await market.placeOrder(connection, {
             owner,
