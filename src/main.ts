@@ -159,8 +159,8 @@ const run = async () => {
       }
     }
 
-    console.log(topBidSize, ordersSizeSum);
-    console.log(topBidPrice, myOrderPrice);
+    // console.log(topBidSize, ordersSizeSum);
+    // console.log(topBidPrice, myOrderPrice);
     if (
       (topBidPrice > myOrderPrice || topBidSize > ordersSizeSum) &&
       topBidPrice < 0.005
