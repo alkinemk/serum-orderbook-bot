@@ -91,12 +91,12 @@ const run = async () => {
       baseTokenTotal = openOrders.baseTokenTotal.toNumber();
       quoteTokenFree = openOrders.quoteTokenFree.toNumber();
       quoteTokenTotal = openOrders.quoteTokenTotal.toNumber();
-      console.log(
-        baseTokenFree,
-        baseTokenTotal,
-        quoteTokenFree,
-        quoteTokenTotal
-      );
+      // console.log(
+      //   baseTokenFree,
+      //   baseTokenTotal,
+      //   quoteTokenFree,
+      //   quoteTokenTotal
+      // );
       // console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
       if (baseTokenFree > 50000 || quoteTokenFree > 50000000) {
         // spl-token accounts to which to send the proceeds from trades
