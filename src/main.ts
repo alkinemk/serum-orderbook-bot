@@ -131,7 +131,11 @@ const run = async () => {
     //   }
     //   if
     // }
-    if (topBidPrice === myOrderPrice && ordersSizeSum < 5000) {
+    if (
+      topBidPrice === myOrderPrice &&
+      ordersSizeSum < 5000 &&
+      topBidPrice < 0.0055
+    ) {
       try {
         let size = Math.round(Math.random() * (10000 - 5000) + 5000);
         //let size = 10;
@@ -163,7 +167,7 @@ const run = async () => {
     // console.log(topBidPrice, myOrderPrice);
     if (
       (topBidPrice > myOrderPrice || topBidSize > ordersSizeSum) &&
-      topBidPrice < 0.005
+      topBidPrice < 0.0055
     ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
