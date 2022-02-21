@@ -156,7 +156,7 @@ const run = async () => {
     if (
       topBidPrice === myOrderPrice &&
       ordersSizeSum < 5000 &&
-      topBidPrice < 0.0065
+      topBidPrice < 0.008
     ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
