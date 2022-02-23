@@ -43,26 +43,41 @@ const run = async () => {
   console.log("starting bot...");
 
   while (true) {
-    let ready = true;
-    let ordersSizeSum = 0;
+    let sellReady = true;
+    let buyReady = true;
+
     let topBidPrice = 0;
     let topBidSize = 0;
-    let myOrderPrice = 0;
-    let myOrderSize = 0;
+    let myBuyOrderPrice = 0;
+    let myBuyOrderSize = 0;
+    let buyOrdersSizeSum = 0;
+
+    let topAskPrice = 0;
+    let topAskSize = 0;
+    let mySellOrderPrice = 0;
+    let mySellOrderSize = 0;
+    let sellOrdersSizeSum = 0;
+
     // variables
     let market = await Market.load(connection, address, {}, programId);
     let bids = await market.loadBids(connection);
+    let asks = await market.loadAsks(connection);
 
     //console.log(computeBidsDifference(bids, 5));
     //console.log(checkBestBids(bids, 4));
     //5 * 10^-4
     //0.0005
 
-    //break;
+    console.log("checkpoint 1");
 
     // Placing orders
+    let usdcAccount = new PublicKey(
+      "2N7odTzkWf7kH7CQy55pLvCCqpnMrjWdoUBeESiroAYL"
+    );
 
-    let payer = new PublicKey("2N7odTzkWf7kH7CQy55pLvCCqpnMrjWdoUBeESiroAYL");
+    let foxyAccount = new PublicKey(
+      "AuPwvJkjQN8Bv91DGg65VQzjz1B3JZhUnNGS4N4DsRHm"
+    );
 
     // Retrieving open orders by owner
     let myOrders = await market.loadOrdersForOwner(connection, owner.publicKey);
@@ -70,20 +85,61 @@ const run = async () => {
     // Current orders and asks
     for (let myOrder of myOrders) {
       if (myOrder.side === "buy") {
-        myOrderPrice = myOrder.price;
-        myOrderSize = myOrder.size;
-        ordersSizeSum += myOrderSize;
-        console.log(`My order price : ${myOrderPrice} | size : ${myOrderSize}`);
+        myBuyOrderPrice = myOrder.price;
+        myBuyOrderSize = myOrder.size;
+        buyOrdersSizeSum += myBuyOrderSize;
+        console.log(
+          `My order price : ${myBuyOrderPrice} | size : ${myBuyOrderSize}`
+        );
+      }
+      if (myOrder.side === "sell") {
+        mySellOrderPrice = myOrder.price;
+        mySellOrderSize = myOrder.size;
+        sellOrdersSizeSum += mySellOrderSize;
+        console.log(
+          `My order price : ${mySellOrderPrice} | size : ${mySellOrderSize}`
+        );
       }
     }
 
-    for (let [price, size] of bids.getL2(1)) {
-      topBidPrice = price;
-      topBidSize = size;
-      console.log(`Top bid price : ${topBidPrice} | size : ${topBidSize}`);
+    let topAsk = asks.getL2(1)[0];
+    topAskPrice = topAsk[0];
+    topAskSize = topAsk[1];
+
+    let topBid = bids.getL2(1)[0];
+    topBidPrice = topBid[0];
+    topBidSize = topBid[1];
+
+    let spread = topAskPrice / topBidPrice - 1;
+
+    if (mySellOrderPrice !== 0 && myBuyOrderPrice !== 0 && spread < 0.2) {
+      for (let order of myOrders) {
+        if (order.side === "sell") {
+          try {
+            let signature = await market.cancelOrder(connection, owner, order);
+            console.log("Order cancelled, waiting for finalization");
+            try {
+              while (
+                (await (
+                  await connection.getSignatureStatus(signature)
+                ).value?.confirmationStatus) !== "finalized"
+              );
+              sellReady = true;
+            } catch (error) {
+              console.log(error);
+            }
+            console.log("Transaction finalized");
+          } catch (error) {
+            sellReady = false;
+            console.log("Retrying to cancel sell order...");
+          }
+        }
+      }
     }
 
-    for (let openOrders of await market.findOpenOrdersAccountsForOwner(
+    console.log("checkpoint 2");
+
+    /* for (let openOrders of await market.findOpenOrdersAccountsForOwner(
       connection,
       owner.publicKey
     )) {
@@ -133,65 +189,47 @@ const run = async () => {
       }
     }
     previousBaseTokenTotal = baseTokenTotal;
-    previousQuoteTokenTotal = quoteTokenTotal;
+    previousQuoteTokenTotal = quoteTokenTotal; */
 
-    // if (
-    //   myOrderID.cmp(previousOrderID) === 0 &&
-    //   myOrderSize !== previousOrderSize &&
-    //   myOrderSize !== 0
-    // ) {
-    //   postBuyOrderMatchedDiscord(previousOrderSize - myOrderSize, myOrderPrice);
-    // }
-
-    // for (let openOrders of await market.findOpenOrdersAccountsForOwner(
-    //   connection,
-    //   owner.publicKey
-    // )) {
-    //   foxy = openOrders.baseTokenFree.toNumber();
-    //   if (foxy > 0) {
-    //   postBuyOrderMatchedDiscord(foxy - previousFoxy, );
-    //   }
-    //   if
-    // }
     if (
-      topBidPrice === myOrderPrice &&
-      ordersSizeSum < 5000 &&
+      topBidPrice === myBuyOrderPrice &&
+      buyOrdersSizeSum < 5000 &&
       topBidPrice < 0.008
     ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
           try {
             let signature = await market.cancelOrder(connection, owner, order);
-            console.log("Order cancelled, waiting for finalization");
+            console.log("Buy order cancelled, waiting for finalization");
             try {
               while (
                 (await (
                   await connection.getSignatureStatus(signature)
                 ).value?.confirmationStatus) !== "finalized"
               );
-              ready = true;
+              buyReady = true;
             } catch (error) {
               console.log(error);
             }
             console.log("Transaction finalized");
           } catch (error) {
-            ready = false;
-            console.log("Cancel order retry...");
+            buyReady = false;
+            console.log("Retrying to cancel buy order...");
           }
         }
       }
-      if (ready === true)
+      if (buyReady === true) {
         try {
           let size = Math.round(Math.random() * (20000 - 10000) + 10000);
           let signature = await market.placeOrder(connection, {
             owner,
-            payer,
+            payer: usdcAccount,
             side: "buy", // 'buy' or 'sell'
-            price: myOrderPrice,
+            price: myBuyOrderPrice,
             size: size,
             orderType: "limit", // 'limit', 'ioc', 'postOnly'
           });
-          console.log("Order placed, waiting for finalization...");
+          console.log("Buy order placed, waiting for finalization...");
           try {
             while (
               (await (
@@ -203,14 +241,80 @@ const run = async () => {
           }
           console.log("Transaction finalized");
         } catch (error) {
-          console.log("Place order retry...");
+          buyReady = false;
+          console.log("Retrying to place buy order...");
         }
+      }
     }
 
-    // console.log(topBidSize, ordersSizeSum);
-    // console.log(topBidPrice, myOrderPrice);
+    console.log("checkpoint 3");
+
+    // check for triggering a sell order
     if (
-      (topBidPrice > myOrderPrice || topBidSize > ordersSizeSum) &&
+      (topAskPrice < mySellOrderPrice || topAskSize > sellOrdersSizeSum) &&
+      topAskPrice > 0.009
+    ) {
+      if (spread < 0.2) {
+        for (let order of myOrders) {
+          if (order.side === "sell") {
+            try {
+              let signature = await market.cancelOrder(
+                connection,
+                owner,
+                order
+              );
+              console.log("Order cancelled, waiting for finalization");
+              try {
+                while (
+                  (await (
+                    await connection.getSignatureStatus(signature)
+                  ).value?.confirmationStatus) !== "finalized"
+                );
+                sellReady = true;
+              } catch (error) {
+                console.log(error);
+              }
+              console.log("Transaction finalized");
+            } catch (error) {
+              sellReady = false;
+              console.log("Retrying to cancel sell order...");
+            }
+          }
+        }
+      }
+      if (sellReady === true) {
+        try {
+          let size = Math.round(Math.random() * (20000 - 10000) + 10000);
+          let signature = await market.placeOrder(connection, {
+            owner,
+            payer: foxyAccount,
+            side: "sell", // 'buy' or 'sell'
+            price: topAskPrice - 0.000001,
+            size: size,
+            orderType: "limit", // 'limit', 'ioc', 'postOnly'
+          });
+          console.log("Sell order placed, waiting for finalization...");
+          try {
+            while (
+              (await (
+                await connection.getSignatureStatus(signature)
+              ).value?.confirmationStatus) !== "finalized"
+            );
+            sellReady = false;
+          } catch (error) {
+            console.log(error);
+          }
+          console.log("Transaction finalized");
+        } catch (error) {
+          console.log("Retrying to place sell order...");
+        }
+      }
+    }
+
+    console.log("checkpoint 4");
+
+    if (
+      (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) &&
       topBidPrice < 0.008
     ) {
       for (let order of myOrders) {
@@ -224,44 +328,45 @@ const run = async () => {
                   await connection.getSignatureStatus(signature)
                 ).value?.confirmationStatus) !== "finalized"
               );
-              ready = true;
+              buyReady = true;
             } catch (error) {
               console.log(error);
             }
             console.log("Transaction finalized");
           } catch (error) {
-            ready = false;
-            console.log("Cancel order retry...");
+            buyReady = false;
+            console.log("Retrying to cancel buy order...");
           }
         }
       }
-      if (ready === true)
+      if (buyReady === true) {
         try {
           let size = Math.round(Math.random() * (20000 - 10000) + 10000);
           //let size = 10;
           let signature = await market.placeOrder(connection, {
             owner,
-            payer,
+            payer: usdcAccount,
             side: "buy", // 'buy' or 'sell'
             price: topBidPrice + 0.000001,
             size: size,
             orderType: "limit", // 'limit', 'ioc', 'postOnly'
           });
-          console.log("Order placed, waiting for finalization...");
+          console.log("Buy order placed, waiting for finalization...");
           try {
             while (
               (await (
                 await connection.getSignatureStatus(signature)
               ).value?.confirmationStatus) !== "finalized"
             );
-            ready = false;
+            buyReady = false;
           } catch (error) {
             console.log(error);
           }
           console.log("Transaction finalized");
         } catch (error) {
-          console.log("Place order retry...");
+          console.log("Retrying to place buy order......");
         }
+      }
     }
     await timer(10000);
   }
