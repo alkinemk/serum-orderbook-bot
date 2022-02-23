@@ -112,7 +112,7 @@ const run = async () => {
 
     let spread = topAskPrice / topBidPrice - 1;
 
-    if (mySellOrderPrice !== 0 && myBuyOrderPrice !== 0 && spread < 0.2) {
+    if (spread < 0.2) {
       for (let order of myOrders) {
         if (order.side === "sell") {
           try {
@@ -249,36 +249,32 @@ const run = async () => {
 
     console.log("checkpoint 3");
 
+    console.log(topAskPrice, mySellOrderPrice, topAskSize, sellOrdersSizeSum);
     // check for triggering a sell order
     if (
       (topAskPrice < mySellOrderPrice || topAskSize > sellOrdersSizeSum) &&
-      topAskPrice > 0.009
+      topAskPrice > 0.009 &&
+      spread > 0.2
     ) {
-      if (spread < 0.2) {
-        for (let order of myOrders) {
-          if (order.side === "sell") {
+      for (let order of myOrders) {
+        if (order.side === "sell") {
+          try {
+            let signature = await market.cancelOrder(connection, owner, order);
+            console.log("Order cancelled, waiting for finalization");
             try {
-              let signature = await market.cancelOrder(
-                connection,
-                owner,
-                order
+              while (
+                (await (
+                  await connection.getSignatureStatus(signature)
+                ).value?.confirmationStatus) !== "finalized"
               );
-              console.log("Order cancelled, waiting for finalization");
-              try {
-                while (
-                  (await (
-                    await connection.getSignatureStatus(signature)
-                  ).value?.confirmationStatus) !== "finalized"
-                );
-                sellReady = true;
-              } catch (error) {
-                console.log(error);
-              }
-              console.log("Transaction finalized");
+              sellReady = true;
             } catch (error) {
-              sellReady = false;
-              console.log("Retrying to cancel sell order...");
+              console.log(error);
             }
+            console.log("Transaction finalized");
+          } catch (error) {
+            sellReady = false;
+            console.log("Retrying to cancel sell order...");
           }
         }
       }
