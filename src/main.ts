@@ -33,31 +33,29 @@ const owner = new Account(Uint8Array.from(JSON.parse(privateKey)));
 //   }
 // };
 
-const cancelSellOrder = async (
+const cancelAllOrders = async (
   myOrders: any,
   market: Market,
   sellReady: boolean
 ) => {
   for (let order of myOrders) {
-    if (order.side === "sell") {
+    try {
+      let signature = await market.cancelOrder(connection, owner, order);
+      console.log("Order cancelled, waiting for finalization");
       try {
-        let signature = await market.cancelOrder(connection, owner, order);
-        console.log("Order cancelled, waiting for finalization");
-        try {
-          while (
-            (await (
-              await connection.getSignatureStatus(signature)
-            ).value?.confirmationStatus) !== "finalized"
-          );
-          sellReady = true;
-        } catch (error) {
-          console.log(error);
-        }
-        console.log("Transaction finalized");
+        while (
+          (await (
+            await connection.getSignatureStatus(signature)
+          ).value?.confirmationStatus) !== "finalized"
+        );
+        sellReady = true;
       } catch (error) {
-        sellReady = false;
-        console.log("Retrying to cancel sell order...");
+        console.log(error);
       }
+      console.log("Transaction finalized");
+    } catch (error) {
+      sellReady = false;
+      console.log("Retrying to cancel all orders...");
     }
   }
 };
@@ -151,8 +149,8 @@ const run = async () => {
       spread = mySellOrderPrice / myBuyOrderPrice - 1;
     }
 
-    if (spread < 0.12) {
-      cancelSellOrder(myOrders, market, sellReady);
+    if (spread < 0.2) {
+      cancelAllOrders(myOrders, market, sellReady);
     }
 
     for (let openOrders of await market.findOpenOrdersAccountsForOwner(
@@ -215,11 +213,7 @@ const run = async () => {
     previousBaseTokenTotal = baseTokenTotal;
     previousQuoteTokenTotal = quoteTokenTotal;
 
-    if (
-      topBidPrice === myBuyOrderPrice &&
-      buyOrdersSizeSum < 5000 &&
-      topBidPrice < 0.0085
-    ) {
+    if (topBidPrice === myBuyOrderPrice && buyOrdersSizeSum < 5000) {
       for (let order of myOrders) {
         if (order.side === "buy") {
           try {
@@ -242,7 +236,7 @@ const run = async () => {
           }
         }
       }
-      if (buyReady === true) {
+      if (buyReady === true && spread > 0.2) {
         try {
           let size = Math.round(Math.random() * (30000 - 15000) + 15000);
           let signature = await market.placeOrder(connection, {
@@ -272,11 +266,7 @@ const run = async () => {
     }
 
     // check for triggering a sell order
-    if (
-      (topAskPrice < mySellOrderPrice || topAskSize > sellOrdersSizeSum) &&
-      topAskPrice > 0.009 &&
-      spread > 0.12
-    ) {
+    if (topAskPrice < mySellOrderPrice || topAskSize > sellOrdersSizeSum) {
       for (let order of myOrders) {
         if (order.side === "sell") {
           try {
@@ -299,7 +289,7 @@ const run = async () => {
           }
         }
       }
-      if (sellReady === true) {
+      if (sellReady === true && spread > 0.2) {
         try {
           let size = Math.round(Math.random() * (30000 - 15000) + 15000);
           let signature = await market.placeOrder(connection, {
@@ -328,10 +318,7 @@ const run = async () => {
       }
     }
 
-    if (
-      (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) &&
-      topBidPrice < 0.0085
-    ) {
+    if (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) {
       for (let order of myOrders) {
         if (order.side === "buy") {
           try {
@@ -354,7 +341,7 @@ const run = async () => {
           }
         }
       }
-      if (buyReady === true) {
+      if (buyReady === true && spread > 0.2) {
         try {
           let size = Math.round(Math.random() * (30000 - 15000) + 15000);
           //let size = 10;
