@@ -139,19 +139,19 @@ const run = async () => {
       connection,
       owner.publicKey
     )) {
-      /*
       baseTokenFree = openOrders.baseTokenFree.toNumber();
       baseTokenTotal = openOrders.baseTokenTotal.toNumber();
       quoteTokenFree = openOrders.quoteTokenFree.toNumber();
       quoteTokenTotal = openOrders.quoteTokenTotal.toNumber();
-      // console.log(
-      //   baseTokenFree,
-      //   baseTokenTotal,
-      //   quoteTokenFree,
-      //   quoteTokenTotal
-      // );
-      // console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
+      console.log(
+        baseTokenFree,
+        baseTokenTotal,
+        quoteTokenFree,
+        quoteTokenTotal
+      );
+      //console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
 
+      /*
       let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
       let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
       let price = quoteDifference / baseDifference / 1000000;
