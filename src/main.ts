@@ -163,7 +163,7 @@ const run = async () => {
         postBuyOrderMatchedDiscord(baseDifference, price);
       } */
 
-      if (baseTokenFree > 50000 || quoteTokenFree > 50000000) {
+      if (baseTokenFree > 50000 || quoteTokenFree > 40000000) {
         // spl-token accounts to which to send the proceeds from trades
         let baseTokenAccount = new PublicKey(
           "AuPwvJkjQN8Bv91DGg65VQzjz1B3JZhUnNGS4N4DsRHm"
