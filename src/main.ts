@@ -68,8 +68,6 @@ const run = async () => {
     //5 * 10^-4
     //0.0005
 
-    console.log("checkpoint 1");
-
     // Placing orders
     let usdcAccount = new PublicKey(
       "2N7odTzkWf7kH7CQy55pLvCCqpnMrjWdoUBeESiroAYL"
@@ -137,12 +135,11 @@ const run = async () => {
       }
     }
 
-    console.log("checkpoint 2");
-
-    /* for (let openOrders of await market.findOpenOrdersAccountsForOwner(
+    for (let openOrders of await market.findOpenOrdersAccountsForOwner(
       connection,
       owner.publicKey
     )) {
+      /*
       baseTokenFree = openOrders.baseTokenFree.toNumber();
       baseTokenTotal = openOrders.baseTokenTotal.toNumber();
       quoteTokenFree = openOrders.quoteTokenFree.toNumber();
@@ -164,7 +161,7 @@ const run = async () => {
         previousBaseTokenTotal > 0
       ) {
         postBuyOrderMatchedDiscord(baseDifference, price);
-      }
+      } */
 
       if (baseTokenFree > 50000 || quoteTokenFree > 50000000) {
         // spl-token accounts to which to send the proceeds from trades
@@ -189,12 +186,12 @@ const run = async () => {
       }
     }
     previousBaseTokenTotal = baseTokenTotal;
-    previousQuoteTokenTotal = quoteTokenTotal; */
+    previousQuoteTokenTotal = quoteTokenTotal;
 
     if (
       topBidPrice === myBuyOrderPrice &&
       buyOrdersSizeSum < 5000 &&
-      topBidPrice < 0.008
+      topBidPrice < 0.0085
     ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
@@ -247,9 +244,6 @@ const run = async () => {
       }
     }
 
-    console.log("checkpoint 3");
-
-    console.log(topAskPrice, mySellOrderPrice, topAskSize, sellOrdersSizeSum);
     // check for triggering a sell order
     if (
       (topAskPrice < mySellOrderPrice || topAskSize > sellOrdersSizeSum) &&
@@ -307,11 +301,9 @@ const run = async () => {
       }
     }
 
-    console.log("checkpoint 4");
-
     if (
       (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) &&
-      topBidPrice < 0.008
+      topBidPrice < 0.0085
     ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
