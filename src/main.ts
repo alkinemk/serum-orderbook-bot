@@ -5,6 +5,8 @@ import axios from "axios";
 let connection = new Connection("https://ssc-dao.genesysgo.net/");
 let address = new PublicKey("2L3TXpA5ytXq8jFC7mwmbvvTNkFJM5HRYk2pvXXDgrVR");
 let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
+const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
+const owner = new Account(Uint8Array.from(JSON.parse(privateKey)));
 
 // const checkBestBids = (bids: Orderbook, depth: number) => {
 //   let topNthBids = bids.getL2(depth);
@@ -31,9 +33,38 @@ let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 //   }
 // };
 
+const cancelSellOrder = async (
+  myOrders: any,
+  market: Market,
+  sellReady: boolean
+) => {
+  for (let order of myOrders) {
+    if (order.side === "sell") {
+      try {
+        let signature = await market.cancelOrder(connection, owner, order);
+        console.log("Order cancelled, waiting for finalization");
+        try {
+          while (
+            (await (
+              await connection.getSignatureStatus(signature)
+            ).value?.confirmationStatus) !== "finalized"
+          );
+          sellReady = true;
+        } catch (error) {
+          console.log(error);
+        }
+        console.log("Transaction finalized");
+      } catch (error) {
+        sellReady = false;
+        console.log("Retrying to cancel sell order...");
+      }
+    }
+  }
+};
+
+const cancelBuyOrder = () => {};
+
 const run = async () => {
-  const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
-  const owner = new Account(Uint8Array.from(JSON.parse(privateKey)));
   let baseTokenFree = 0;
   let baseTokenTotal = 0;
   let quoteTokenFree = 0;
@@ -80,6 +111,20 @@ const run = async () => {
     // Retrieving open orders by owner
     let myOrders = await market.loadOrdersForOwner(connection, owner.publicKey);
 
+    let topAsk = asks.getL2(1)[0];
+    topAskPrice = topAsk[0];
+    topAskSize = topAsk[1];
+
+    let topBid = bids.getL2(1)[0];
+    topBidPrice = topBid[0];
+    topBidSize = topBid[1];
+
+    console.log("_________________________");
+
+    console.log(
+      `Top bid price : ${topBidPrice} | top ask price : ${topAskPrice}`
+    );
+
     // Current orders and asks
     for (let myOrder of myOrders) {
       if (myOrder.side === "buy") {
@@ -100,39 +145,14 @@ const run = async () => {
       }
     }
 
-    let topAsk = asks.getL2(1)[0];
-    topAskPrice = topAsk[0];
-    topAskSize = topAsk[1];
-
-    let topBid = bids.getL2(1)[0];
-    topBidPrice = topBid[0];
-    topBidSize = topBid[1];
-
     let spread = topAskPrice / topBidPrice - 1;
 
-    if (spread < 0.2) {
-      for (let order of myOrders) {
-        if (order.side === "sell") {
-          try {
-            let signature = await market.cancelOrder(connection, owner, order);
-            console.log("Order cancelled, waiting for finalization");
-            try {
-              while (
-                (await (
-                  await connection.getSignatureStatus(signature)
-                ).value?.confirmationStatus) !== "finalized"
-              );
-              sellReady = true;
-            } catch (error) {
-              console.log(error);
-            }
-            console.log("Transaction finalized");
-          } catch (error) {
-            sellReady = false;
-            console.log("Retrying to cancel sell order...");
-          }
-        }
-      }
+    if (myBuyOrderPrice !== 0 && mySellOrderPrice !== 0) {
+      spread = mySellOrderPrice / myBuyOrderPrice - 1;
+    }
+
+    if (spread < 0.12) {
+      cancelSellOrder(myOrders, market, sellReady);
     }
 
     for (let openOrders of await market.findOpenOrdersAccountsForOwner(
@@ -151,7 +171,6 @@ const run = async () => {
       // );
       //console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
 
-      /*
       let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
       let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
       let price = quoteDifference / baseDifference / 1000000;
@@ -161,7 +180,15 @@ const run = async () => {
         previousBaseTokenTotal > 0
       ) {
         postBuyOrderMatchedDiscord(baseDifference, price);
-      } */
+      }
+
+      if (
+        (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
+        quoteDifference > 0 &&
+        previousQuoteTokenTotal > 0
+      ) {
+        postBuyOrderMatchedDiscord(quoteDifference, price);
+      }
 
       if (baseTokenFree > 50000 || quoteTokenFree > 40000000) {
         // spl-token accounts to which to send the proceeds from trades
@@ -248,7 +275,7 @@ const run = async () => {
     if (
       (topAskPrice < mySellOrderPrice || topAskSize > sellOrdersSizeSum) &&
       topAskPrice > 0.009 &&
-      spread > 0.2
+      spread > 0.12
     ) {
       for (let order of myOrders) {
         if (order.side === "sell") {
