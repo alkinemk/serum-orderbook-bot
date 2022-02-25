@@ -143,12 +143,12 @@ const run = async () => {
       baseTokenTotal = openOrders.baseTokenTotal.toNumber();
       quoteTokenFree = openOrders.quoteTokenFree.toNumber();
       quoteTokenTotal = openOrders.quoteTokenTotal.toNumber();
-      console.log(
-        baseTokenFree,
-        baseTokenTotal,
-        quoteTokenFree,
-        quoteTokenTotal
-      );
+      // console.log(
+      //   baseTokenFree,
+      //   baseTokenTotal,
+      //   quoteTokenFree,
+      //   quoteTokenTotal
+      // );
       //console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
 
       /*
