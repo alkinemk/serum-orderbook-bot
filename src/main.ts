@@ -274,7 +274,7 @@ const run = async () => {
       }
       if (sellReady === true) {
         try {
-          let size = Math.round(Math.random() * (30000 - 15000) + 15000);
+          let size = Math.round(Math.random() * (20000 - 10000) + 10000);
           let signature = await market.placeOrder(connection, {
             owner,
             payer: foxyAccount,
@@ -329,7 +329,7 @@ const run = async () => {
       }
       if (buyReady === true) {
         try {
-          let size = Math.round(Math.random() * (20000 - 10000) + 10000);
+          let size = Math.round(Math.random() * (30000 - 15000) + 15000);
           //let size = 10;
           let signature = await market.placeOrder(connection, {
             owner,
