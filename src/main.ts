@@ -2,7 +2,9 @@ import { Account, Connection, PublicKey } from "@solana/web3.js";
 import { Market, Orderbook } from "@project-serum/serum";
 import axios from "axios";
 
-let connection = new Connection("https://api.mainnet-beta.solana.com");
+let connection = new Connection(
+  "https://wild-holy-firefly.solana-mainnet.quiknode.pro/060daf6c4471e847c1aa05677fa2d50d2302682e/"
+);
 let address = new PublicKey("2L3TXpA5ytXq8jFC7mwmbvvTNkFJM5HRYk2pvXXDgrVR");
 let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
@@ -33,6 +35,21 @@ const owner = new Account(Uint8Array.from(JSON.parse(privateKey)));
 //   }
 // };
 
+const timer = (ms: any) => new Promise((res) => setTimeout(res, ms));
+
+const awaitForTxnFinalization = async (
+  signature: string,
+  connection: Connection
+) => {
+  let status: any = "";
+  while (status !== "finalized") {
+    status = await (
+      await connection.getSignatureStatus(signature)
+    ).value?.confirmationStatus;
+    await timer(15000);
+  }
+};
+
 const cancelSellOrder = async (
   myOrders: any,
   market: Market,
@@ -44,11 +61,7 @@ const cancelSellOrder = async (
         let signature = await market.cancelOrder(connection, owner, order);
         console.log("Order cancelled, waiting for finalization");
         try {
-          while (
-            (await (
-              await connection.getSignatureStatus(signature)
-            ).value?.confirmationStatus) !== "finalized"
-          );
+          await awaitForTxnFinalization(signature, connection);
           sellReady = true;
         } catch (error) {
           console.log(error);
@@ -132,7 +145,7 @@ const run = async () => {
         myBuyOrderSize = myOrder.size;
         buyOrdersSizeSum += myBuyOrderSize;
         console.log(
-          `My order price : ${myBuyOrderPrice} | size : ${myBuyOrderSize}`
+          `My buy order price : ${myBuyOrderPrice} | size : ${myBuyOrderSize}`
         );
       }
       if (myOrder.side === "sell") {
@@ -140,7 +153,7 @@ const run = async () => {
         mySellOrderSize = myOrder.size;
         sellOrdersSizeSum += mySellOrderSize;
         console.log(
-          `My order price : ${mySellOrderPrice} | size : ${mySellOrderSize}`
+          `My sell order price : ${mySellOrderPrice} | size : ${mySellOrderSize}`
         );
       }
     }
@@ -172,25 +185,28 @@ const run = async () => {
       //   quoteTokenTotal
       // );
       //console.log(previousBaseTokenTotal, previousQuoteTokenTotal);
+      console.log(
+        `To settle : ${quoteTokenFree / 1000000} $USDC | ${baseTokenFree} $FOXY`
+      );
 
       let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
       let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
       let price = quoteDifference / baseDifference / 1000000;
-      if (
-        (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
-        baseDifference > 0 &&
-        previousBaseTokenTotal > 0
-      ) {
-        postBuyOrderMatchedDiscord(baseDifference, price);
-      }
+      // if (
+      //   (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
+      //   baseDifference > 0 &&
+      //   previousBaseTokenTotal > 0
+      // ) {
+      //   postBuyOrderMatchedDiscord(baseDifference, price);
+      // }
 
-      if (
-        (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
-        quoteDifference > 0 &&
-        previousQuoteTokenTotal > 0
-      ) {
-        postBuyOrderMatchedDiscord(quoteDifference, price);
-      }
+      // if (
+      //   (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
+      //   quoteDifference > 0 &&
+      //   previousQuoteTokenTotal > 0
+      // ) {
+      //   postBuyOrderMatchedDiscord(quoteDifference, price);
+      // }
 
       if (baseTokenFree > 50000 || quoteTokenFree > 40000000) {
         // spl-token accounts to which to send the proceeds from trades
@@ -224,11 +240,7 @@ const run = async () => {
             let signature = await market.cancelOrder(connection, owner, order);
             console.log("Buy order cancelled, waiting for finalization");
             try {
-              while (
-                (await (
-                  await connection.getSignatureStatus(signature)
-                ).value?.confirmationStatus) !== "finalized"
-              );
+              await awaitForTxnFinalization(signature, connection);
               buyReady = true;
             } catch (error) {
               console.log(error);
@@ -240,7 +252,7 @@ const run = async () => {
           }
         }
       }
-      if (buyReady === true && spread > 0.2) {
+      if (buyReady === true) {
         try {
           let size = Math.round(Math.random() * (30000 - 15000) + 15000);
           let signature = await market.placeOrder(connection, {
@@ -253,17 +265,13 @@ const run = async () => {
           });
           console.log("Buy order placed, waiting for finalization...");
           try {
-            while (
-              (await (
-                await connection.getSignatureStatus(signature)
-              ).value?.confirmationStatus) !== "finalized"
-            );
+            await awaitForTxnFinalization(signature, connection);
+            buyReady = false;
           } catch (error) {
             console.log(error);
           }
           console.log("Transaction finalized");
         } catch (error) {
-          buyReady = false;
           console.log("Retrying to place buy order...");
         }
       }
@@ -275,13 +283,9 @@ const run = async () => {
         if (order.side === "sell") {
           try {
             let signature = await market.cancelOrder(connection, owner, order);
-            console.log("Order cancelled, waiting for finalization");
+            console.log("Sell order cancelled, waiting for finalization");
             try {
-              while (
-                (await (
-                  await connection.getSignatureStatus(signature)
-                ).value?.confirmationStatus) !== "finalized"
-              );
+              await awaitForTxnFinalization(signature, connection);
               sellReady = true;
             } catch (error) {
               console.log(error);
@@ -306,11 +310,7 @@ const run = async () => {
           });
           console.log("Sell order placed, waiting for finalization...");
           try {
-            while (
-              (await (
-                await connection.getSignatureStatus(signature)
-              ).value?.confirmationStatus) !== "finalized"
-            );
+            await awaitForTxnFinalization(signature, connection);
             sellReady = false;
           } catch (error) {
             console.log(error);
@@ -327,13 +327,9 @@ const run = async () => {
         if (order.side === "buy") {
           try {
             let signature = await market.cancelOrder(connection, owner, order);
-            console.log("Order cancelled, waiting for finalization");
+            console.log("Buy order cancelled, waiting for finalization");
             try {
-              while (
-                (await (
-                  await connection.getSignatureStatus(signature)
-                ).value?.confirmationStatus) !== "finalized"
-              );
+              await awaitForTxnFinalization(signature, connection);
               buyReady = true;
             } catch (error) {
               console.log(error);
@@ -345,7 +341,7 @@ const run = async () => {
           }
         }
       }
-      if (buyReady === true && spread > 0.2) {
+      if (buyReady === true) {
         try {
           let size = Math.round(Math.random() * (30000 - 15000) + 15000);
           //let size = 10;
@@ -359,11 +355,7 @@ const run = async () => {
           });
           console.log("Buy order placed, waiting for finalization...");
           try {
-            while (
-              (await (
-                await connection.getSignatureStatus(signature)
-              ).value?.confirmationStatus) !== "finalized"
-            );
+            await awaitForTxnFinalization(signature, connection);
             buyReady = false;
           } catch (error) {
             console.log(error);
@@ -377,7 +369,6 @@ const run = async () => {
     await timer(10000);
   }
 };
-const timer = (ms: any) => new Promise((res) => setTimeout(res, ms));
 
 const postBuyOrderMatchedDiscord = (quantity: Number, price: Number) => {
   axios.post(process.env.FOXY_BOT!, {
