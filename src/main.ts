@@ -33,29 +33,31 @@ const owner = new Account(Uint8Array.from(JSON.parse(privateKey)));
 //   }
 // };
 
-const cancelAllOrders = async (
+const cancelSellOrder = async (
   myOrders: any,
   market: Market,
   sellReady: boolean
 ) => {
   for (let order of myOrders) {
-    try {
-      let signature = await market.cancelOrder(connection, owner, order);
-      console.log("Order cancelled, waiting for finalization");
+    if (order.side == "sell") {
       try {
-        while (
-          (await (
-            await connection.getSignatureStatus(signature)
-          ).value?.confirmationStatus) !== "finalized"
-        );
-        sellReady = true;
+        let signature = await market.cancelOrder(connection, owner, order);
+        console.log("Order cancelled, waiting for finalization");
+        try {
+          while (
+            (await (
+              await connection.getSignatureStatus(signature)
+            ).value?.confirmationStatus) !== "finalized"
+          );
+          sellReady = true;
+        } catch (error) {
+          console.log(error);
+        }
+        console.log("Transaction finalized");
       } catch (error) {
-        console.log(error);
+        sellReady = false;
+        console.log("Retrying to cancel all orders...");
       }
-      console.log("Transaction finalized");
-    } catch (error) {
-      sellReady = false;
-      console.log("Retrying to cancel all orders...");
     }
   }
 };
@@ -150,7 +152,7 @@ const run = async () => {
     }
 
     if (spread < 0.2) {
-      cancelAllOrders(myOrders, market, sellReady);
+      cancelSellOrder(myOrders, market, sellReady);
     }
 
     for (let openOrders of await market.findOpenOrdersAccountsForOwner(
