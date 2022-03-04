@@ -2,7 +2,7 @@ import { Account, Connection, PublicKey } from "@solana/web3.js";
 import { Market, Orderbook } from "@project-serum/serum";
 import axios from "axios";
 
-let connection = new Connection("https://ssc-dao.genesysgo.net/");
+let connection = new Connection("https://api.mainnet-beta.solana.com");
 let address = new PublicKey("2L3TXpA5ytXq8jFC7mwmbvvTNkFJM5HRYk2pvXXDgrVR");
 let programId = new PublicKey("9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin");
 const privateKey: string = process.env.PRIVATE_KEY!; // stored as an array string
@@ -154,6 +154,8 @@ const run = async () => {
     if (spread < 0.2) {
       cancelSellOrder(myOrders, market, sellReady);
     }
+
+    console.log(`Spread : ${spread}`);
 
     for (let openOrders of await market.findOpenOrdersAccountsForOwner(
       connection,
