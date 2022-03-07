@@ -283,7 +283,7 @@ const run = async () => {
           }
         }
       }
-      if (sellReady === true && spread > 0.25) {
+      if (sellReady === true && spread > 0.22) {
         try {
           let size = Math.round(Math.random() * (30000 - 15000) + 15000);
           let signature = await market.placeOrder(connection, {
