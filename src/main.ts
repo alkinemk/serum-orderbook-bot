@@ -233,7 +233,11 @@ const run = async () => {
     previousBaseTokenTotal = baseTokenTotal;
     previousQuoteTokenTotal = quoteTokenTotal;
 
-    if (topBidPrice === myBuyOrderPrice && buyOrdersSizeSum < 5000) {
+    if (
+      topBidPrice === myBuyOrderPrice &&
+      buyOrdersSizeSum < 5000 &&
+      topBidPrice < 0.006
+    ) {
       if (buyReady === true) {
         try {
           let size = Math.round(Math.random() * (25000 - 10000) + 10000);
@@ -304,7 +308,10 @@ const run = async () => {
       }
     }
 
-    if (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) {
+    if (
+      (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) &&
+      topBidPrice < 0.006
+    ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
           try {
