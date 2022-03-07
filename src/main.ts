@@ -192,13 +192,13 @@ const run = async () => {
       let baseDifference = Math.abs(baseTokenTotal - previousBaseTokenTotal);
       let quoteDifference = Math.abs(quoteTokenTotal - previousQuoteTokenTotal);
       let price = quoteDifference / baseDifference / 1000000;
-      // if (
-      //   (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
-      //   baseDifference > 0 &&
-      //   previousBaseTokenTotal > 0
-      // ) {
-      //   postBuyOrderMatchedDiscord(baseDifference, price);
-      // }
+      if (
+        (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
+        baseDifference > 0 &&
+        previousBaseTokenTotal > 0
+      ) {
+        postBuyOrderMatchedDiscord(baseDifference, price);
+      }
 
       // if (
       //   (baseTokenFree !== 0 || quoteTokenFree !== 0) &&
@@ -233,28 +233,14 @@ const run = async () => {
     previousBaseTokenTotal = baseTokenTotal;
     previousQuoteTokenTotal = quoteTokenTotal;
 
-    if (topBidPrice === myBuyOrderPrice && buyOrdersSizeSum < 5000) {
-      for (let order of myOrders) {
-        if (order.side === "buy") {
-          try {
-            let signature = await market.cancelOrder(connection, owner, order);
-            console.log("Buy order cancelled, waiting for finalization");
-            try {
-              await awaitForTxnFinalization(signature, connection);
-              buyReady = true;
-            } catch (error) {
-              console.log(error);
-            }
-            console.log("Transaction finalized");
-          } catch (error) {
-            buyReady = false;
-            console.log("Retrying to cancel buy order...");
-          }
-        }
-      }
+    if (
+      topBidPrice === myBuyOrderPrice &&
+      buyOrdersSizeSum < 5000 &&
+      topBidPrice < 0.006
+    ) {
       if (buyReady === true) {
         try {
-          let size = Math.round(Math.random() * (30000 - 15000) + 15000);
+          let size = Math.round(Math.random() * (25000 - 10000) + 10000);
           let signature = await market.placeOrder(connection, {
             owner,
             payer: usdcAccount,
@@ -322,7 +308,10 @@ const run = async () => {
       }
     }
 
-    if (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) {
+    if (
+      (topBidPrice > myBuyOrderPrice || topBidSize > buyOrdersSizeSum) &&
+      topBidPrice < 0.006
+    ) {
       for (let order of myOrders) {
         if (order.side === "buy") {
           try {
